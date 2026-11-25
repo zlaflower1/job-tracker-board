@@ -1,289 +1,293 @@
-// ===== 기업분석 프롬프트 조립기 =====
-// 이 파일은 브라우저 안에서만 움직여요. 입력한 내용은 어디로도 전송되지 않아요.
+// ===== 지원 현황 보드 =====
+// 이 파일은 브라우저 안에서만 움직여요. 입력한 내용은 이 브라우저(localStorage)에만 저장되고,
+// 어디로도 전송되지 않아요.
 
-// ----- 1. 프롬프트 틀 (바꾸고 싶은 문장은 여기서 고쳐요) -----
-// {company}=기업명, {job}=지원직무, {industry}=산업, {competitors}=경쟁사
-// needsCompetitor: true 이면 경쟁사를 입력했을 때만 보여줘요.
-const SECTIONS = [
-  {
-    number: 1,
-    title: "기업정보파악 및 핵심 사업분석",
-    prompts: [
-      { text: "{company}의 기업 개요를 취업준비생이 이해하도록 정리하고, 주요사업, 제품 및 서비스, 주요 고객, 기업 규모를 표로 정리해줘." },
-      { text: "{company}의 주요 사업별 특징과 수익구조를 설명하고, 향후 성장 가능성이 높은 사업을 분석해줘." }
-    ]
-  },
-  {
-    number: 2,
-    title: "산업분석",
-    prompts: [
-      { text: "{industry}의 규모, 성장률과 시장 트렌드를 포함한 주요 기술 변화와 정부 정책 규제를 알려주고, {industry}의 기회와 위협을 분석해줘." }
-    ]
-  },
-  {
-    number: 3,
-    title: "채용관점에서 기업분석 및 경쟁사 분석",
-    prompts: [
-      { text: "{company}의 최근 사업전략을 분석하고, 이 전략이 채용과 직무에 어떤 영향을 미칠지 분석해줘. 특히 {job}에서 중요하게 요구될 역량 5가지를 제시해줘." },
-      { text: "{company:과/와} 주요 경쟁사 3곳{competitorHint}을 사업, 제품, 시장점유율, 기술력, 경쟁우위 측면에서 비교해줘." }
-    ]
-  },
-  {
-    number: 4,
-    title: "SWOT분석",
-    prompts: [
-      {
-        text: "앞에서 분석한 내용을 바탕으로 {company}의 SWOT 분석을 작성해줘. 단순 나열하지 말고 각 항목에 대한 근거도 함께 제시해줘.\n" +
-              "- Strength(강점): 기술력, 브랜드, 시장점유율, 핵심인재 등\n" +
-              "- Weakness(약점): 비용구조, 특정사업 의존도, 기술적 한계 등\n" +
-              "- Opportunity(기회): 시장성장, 새로운 기술, 해외시장 확대 등\n" +
-              "- Threat(위협): 경쟁사, 규제, 경기침체, 기술변화 등"
-      }
-    ]
-  },
-  {
-    number: 5,
-    title: "결론",
-    prompts: [
-      { text: "{company}의 비전과 경영철학에 대해 알려줘." },
-      { text: "{company}의 장점과 단점에 대해 알려줘." },
-      { text: "{company}의 인재상에 대해 알려줘." },
-      { text: "{company}의 차별화된 강점과 발전을 위해 개선해야 할 점을 알려줘." },
-      { text: "{company}의 최신 이슈에 대해 알려줘." },
-      { text: "{company}의 최근 출시 상품 및 서비스에 대해 알려줘." },
-      { text: "{company:이/가} {competitors:과/와} 차별화되는 포인트를 알려줘.", needsCompetitor: true }
-    ]
-  }
+// ----- 1. 설정값 (바꾸고 싶으면 여기서 고쳐요) -----
+
+// 진행 상태 목록. color 는 style.css 의 CSS 변수 이름이에요.
+const STATUSES = [
+  { name: "지원 예정", color: "--status-plan" },
+  { name: "서류 제출", color: "--status-submitted" },
+  { name: "서류 합격", color: "--status-document-pass" },
+  { name: "면접", color: "--status-interview" },
+  { name: "최종 합격", color: "--status-final-pass" },
+  { name: "불합격", color: "--status-fail" }
 ];
+const DEFAULT_STATUS = STATUSES[0].name;
+const FILTER_ALL = "전체";
+const STORAGE_KEY = "applicationBoard.v1";
+const URGENT_DAYS = 3; // 마감이 이 날짜 안으로 남으면 빨간색으로 보여요
 
-// ----- 3. 화면 요소 찾기 -----
-const urlInput = document.getElementById("urlInput");
+// ----- 2. 화면 요소 찾기 -----
 const companyInput = document.getElementById("companyInput");
 const jobInput = document.getElementById("jobInput");
-const industryInput = document.getElementById("industryInput");
-const competitorInput = document.getElementById("competitorInput");
-const pasteInput = document.getElementById("pasteInput");
-const buildBtn = document.getElementById("buildBtn");
+const deadlineInput = document.getElementById("deadlineInput");
+const statusSelect = document.getElementById("statusSelect");
+const memoInput = document.getElementById("memoInput");
+const formMessage = document.getElementById("formMessage");
+const addBtn = document.getElementById("addBtn");
 const exampleBtn = document.getElementById("exampleBtn");
-const copyAllBtn = document.getElementById("copyAllBtn");
-const resultCard = document.getElementById("resultCard");
-const resultArea = document.getElementById("resultArea");
-const warning = document.getElementById("warning");
+const summary = document.getElementById("summary");
+const filterSelect = document.getElementById("filterSelect");
+const boardList = document.getElementById("boardList");
+const emptyMessage = document.getElementById("emptyMessage");
+const storageWarning = document.getElementById("storageWarning");
 
-// 지금 화면에 나온 프롬프트 글을 모아 두는 곳 ("전체 복사"에서 써요)
-let currentTexts = [];
+// 저장된 회사 목록. 모양: [{ id, company, job, deadline, status, memo }, ...]
+let items = [];
+
+// ----- 3. 저장하고 불러오기 -----
+
+// 브라우저에 저장된 목록을 읽어요. 읽을 수 없거나 모양이 이상하면 빈 목록으로 시작해요.
+function loadItems() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!Array.isArray(saved)) return [];
+    return saved.filter(function (item) {
+      return item && typeof item.id === "string" && typeof item.company === "string";
+    });
+  } catch (e) {
+    return [];
+  }
+}
+
+// 목록을 브라우저에 저장해요. 저장이 막혀 있으면 경고를 보여줘요.
+function saveItems() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    storageWarning.hidden = true;
+  } catch (e) {
+    storageWarning.hidden = false;
+  }
+}
 
 // ----- 4. 작은 함수들 -----
 
-// 체크된 항목 번호를 숫자 목록으로 돌려줘요 (예: [1, 3, 5])
-function getSelectedNumbers() {
-  const checked = document.querySelectorAll('input[name="section"]:checked');
-  return Array.from(checked).map(function (box) {
-    return Number(box.value);
-  });
+// 상태 이름으로 상태 정보를 찾아요 (모르는 이름이면 첫 번째 상태)
+function findStatus(name) {
+  return STATUSES.find(function (status) { return status.name === name; }) || STATUSES[0];
 }
 
-// 입력값을 읽어서 한 덩어리로 돌려줘요 (앞뒤 공백은 지워요)
-function readInputs() {
-  return {
-    url: urlInput.value.trim(),
-    company: companyInput.value.trim(),
-    job: jobInput.value.trim(),
-    industry: industryInput.value.trim(),
-    competitors: competitorInput.value.trim(),
-    pasted: pasteInput.value.trim()
-  };
+// 오늘 날짜를 "YYYY-MM-DD" 글자로 만들어요 (이 컴퓨터의 시간 기준)
+function toDateText(date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return date.getFullYear() + "-" + month + "-" + day;
 }
 
-// 단어 끝 글자에 받침이 있으면 첫째 조사, 없으면 둘째 조사를 붙여요. (예: 가나다전자 + 과/와 → 가나다전자와)
-// 한글이 아닌 글자로 끝나면 읽는 법을 알 수 없어서 "과(와)"처럼 둘 다 적어요.
-function attachParticle(word, withBatchim, withoutBatchim) {
-  const code = word.charCodeAt(word.length - 1);
-  const isHangul = code >= 0xAC00 && code <= 0xD7A3;
-  if (!isHangul) return word + withBatchim + "(" + withoutBatchim + ")";
-  const hasBatchim = (code - 0xAC00) % 28 !== 0;
-  return word + (hasBatchim ? withBatchim : withoutBatchim);
+// 마감일까지 남은 날짜를 숫자로 돌려줘요. 오늘이면 0, 내일이면 1, 어제면 -1
+function daysLeft(deadlineText) {
+  const parts = deadlineText.split("-");
+  const deadline = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((deadline - todayStart) / (24 * 60 * 60 * 1000));
 }
 
-// 틀 속의 {company} 같은 칸을 입력값으로 바꿔요. 비어 있으면 [기업명] 같은 표시를 남겨요.
-function fillTemplate(template, values) {
-  const words = {
-    company: values.company || "[기업명]",
-    job: values.job || "[지원직무]",
-    industry: values.industry || "[산업]",
-    competitors: values.competitors || "[경쟁사]"
-  };
-  const hint = values.competitors ? "(참고: " + values.competitors + ")" : "";
+// 마감일 글자와 "빨간색으로 강조할지"를 돌려줘요
+function describeDeadline(item) {
+  if (!item.deadline) return { text: "마감일 미정", urgent: false };
+  let text = "마감 " + item.deadline;
+  let urgent = false;
 
-  // 1) {company:과/와} 처럼 조사가 붙은 칸을 먼저 바꿔요
-  let result = template.replace(/\{(\w+):([^/}]+)\/([^}]+)\}/g, function (all, key, first, second) {
-    return attachParticle(words[key], first, second);
-  });
-
-  // 2) 나머지 일반 칸을 바꿔요
-  result = result
-    .split("{company}").join(words.company)
-    .split("{job}").join(words.job)
-    .split("{industry}").join(words.industry)
-    .split("{competitors}").join(words.competitors)
-    .split("{competitorHint}").join(hint);
-  return result;
-}
-
-// "먼저 보낼 자료" 프롬프트를 만들어요 (URL과 붙여넣은 내용이 들어가요)
-function makeIntroText(values) {
-  let text = (values.company || "[기업명]") + "에 대해 분석할 거야. 아래 자료를 참고해서 이어지는 질문에 답해줘.\n" +
-             "참고 링크: " + values.url + "\n" +
-             "링크를 열 수 없으면 추측하지 말고 \"링크를 열 수 없어요\"라고 먼저 알려줘.";
-  if (values.pasted) {
-    text += "\n\n[참고 내용]\n" + values.pasted;
+  // 아직 지원 전인 회사만 D-day 를 보여줘요
+  if (item.status === DEFAULT_STATUS) {
+    const left = daysLeft(item.deadline);
+    if (left > 0) text += " (D-" + left + ")";
+    if (left === 0) text += " (오늘 마감!)";
+    if (left < 0) text += " (" + Math.abs(left) + "일 지남)";
+    urgent = left <= URGENT_DAYS;
   }
-  return text;
+  return { text: text, urgent: urgent };
 }
 
-// 체크한 번호의 프롬프트 목록을 만들어요. 돌려주는 모양: [{ title, text }, ...]
-function buildPromptList(values, numbers) {
-  const list = [];
-  list.push({ title: "먼저 보낼 자료", text: makeIntroText(values) });
-
-  SECTIONS.forEach(function (section) {
-    if (!numbers.includes(section.number)) return;
-    section.prompts.forEach(function (prompt, index) {
-      if (prompt.needsCompetitor && !values.competitors) return;
-      list.push({
-        title: section.number + ". " + section.title + " (" + (index + 1) + ")",
-        text: fillTemplate(prompt.text, values)
-      });
-    });
+// 마감일이 빠른 순서로 정렬해요. 마감일이 없는 회사는 맨 뒤로 보내요.
+function sortByDeadline(list) {
+  return list.slice().sort(function (a, b) {
+    if (!a.deadline && !b.deadline) return 0;
+    if (!a.deadline) return 1;
+    if (!b.deadline) return -1;
+    return a.deadline.localeCompare(b.deadline);
   });
-  return list;
 }
 
-// 비어 있는 칸 중, 이번 결과에 필요한 칸을 찾아서 알려줄 문장을 만들어요
-function makeWarning(values, numbers) {
-  const missing = [];
-  if (!values.job && numbers.includes(3)) missing.push("지원 직무");
-  if (!values.industry && numbers.includes(2)) missing.push("산업");
-  if (!values.competitors) missing.push("경쟁사(없으면 경쟁사 관련 프롬프트는 빠져요)");
-  if (missing.length === 0) return "";
-  return "비어 있는 칸: " + missing.join(", ") + ". 비워 두면 [ ] 표시가 그대로 남아요.";
+// 겹치지 않는 번호표를 만들어요
+function makeId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-// 글을 클립보드에 복사해요. 안 되면 옛날 방식으로 한 번 더 시도해요.
-function copyText(text) {
-  if (navigator.clipboard && window.isSecureContext) {
-    return navigator.clipboard.writeText(text).catch(function () {
-      return fallbackCopy(text);
-    });
-  }
-  return Promise.resolve(fallbackCopy(text));
-}
+// ----- 5. 화면 그리기 -----
 
-function fallbackCopy(text) {
-  const temp = document.createElement("textarea");
-  temp.value = text;
-  document.body.appendChild(temp);
-  temp.select();
-  try {
-    document.execCommand("copy");
-  } catch (e) {
-    // 복사가 막힌 환경이면 아무것도 하지 않아요
-  }
-  document.body.removeChild(temp);
-}
-
-// 단추 글자를 잠깐 "복사됨!"으로 바꿨다가 원래대로 돌려요
-function flashCopied(button) {
-  const original = button.dataset.label || button.textContent;
-  button.dataset.label = original;
-  button.textContent = "복사됨!";
-  button.classList.add("copied");
-  setTimeout(function () {
-    button.textContent = original;
-    button.classList.remove("copied");
-  }, 1500);
-}
-
-// ----- 5. 화면에 결과 그리기 -----
-function renderResult(list) {
-  resultArea.textContent = "";
-  currentTexts = [];
-
-  list.forEach(function (item) {
-    currentTexts.push(item.title + "\n" + item.text);
-
-    const box = document.createElement("div");
-    box.className = "prompt-box";
-
-    const title = document.createElement("h3");
-    title.textContent = item.title;
-
-    const body = document.createElement("p");
-    body.className = "prompt-text";
-    body.textContent = item.text;
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "btn copy-one";
-    button.textContent = "복사";
-    button.addEventListener("click", function () {
-      copyText(item.text);
-      flashCopied(button);
-    });
-
-    box.appendChild(title);
-    box.appendChild(body);
-    box.appendChild(button);
-    resultArea.appendChild(box);
+// 상태 선택 목록(<select>)에 선택지를 채워요
+function fillStatusOptions(select, selectedName) {
+  select.textContent = "";
+  STATUSES.forEach(function (status) {
+    const option = document.createElement("option");
+    option.value = status.name;
+    option.textContent = status.name;
+    option.selected = status.name === selectedName;
+    select.appendChild(option);
   });
+}
+
+// "보기" 필터 선택지를 채워요 (전체 + 상태별)
+function fillFilterOptions() {
+  const current = filterSelect.value || FILTER_ALL;
+  filterSelect.textContent = "";
+  [FILTER_ALL].concat(STATUSES.map(function (s) { return s.name; })).forEach(function (name) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    option.selected = name === current;
+    filterSelect.appendChild(option);
+  });
+}
+
+// 상태별 개수 요약을 그려요
+function renderSummary() {
+  summary.textContent = "";
+  STATUSES.forEach(function (status) {
+    const count = items.filter(function (item) { return item.status === status.name; }).length;
+    const chip = document.createElement("span");
+    chip.className = "summary-chip";
+    chip.style.background = "var(" + status.color + ")";
+    chip.textContent = status.name + " " + count;
+    summary.appendChild(chip);
+  });
+}
+
+// 회사 하나를 그리는 카드를 만들어요
+function makeItemCard(item) {
+  const card = document.createElement("div");
+  card.className = "board-item";
+  card.style.borderLeftColor = "var(" + findStatus(item.status).color + ")";
+
+  const top = document.createElement("div");
+  top.className = "item-top";
+  const titleBox = document.createElement("div");
+  const company = document.createElement("p");
+  company.className = "item-company";
+  company.textContent = item.company;
+  const job = document.createElement("p");
+  job.className = "item-job";
+  job.textContent = item.job || "직무 미입력";
+  titleBox.appendChild(company);
+  titleBox.appendChild(job);
+  top.appendChild(titleBox);
+  card.appendChild(top);
+
+  const deadlineInfo = describeDeadline(item);
+  const deadline = document.createElement("p");
+  deadline.className = "item-deadline" + (deadlineInfo.urgent ? " urgent" : "");
+  deadline.textContent = deadlineInfo.text;
+  card.appendChild(deadline);
+
+  if (item.memo) {
+    const memo = document.createElement("p");
+    memo.className = "item-memo";
+    memo.textContent = "메모: " + item.memo;
+    card.appendChild(memo);
+  }
+
+  const bottom = document.createElement("div");
+  bottom.className = "item-bottom";
+
+  // 상태를 바꾸면 바로 저장해요
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", item.company + " 진행 상태");
+  fillStatusOptions(select, item.status);
+  select.addEventListener("change", function () {
+    item.status = select.value;
+    saveItems();
+    renderBoard();
+  });
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "btn btn-danger";
+  deleteBtn.textContent = "삭제";
+  deleteBtn.addEventListener("click", function () {
+    if (!window.confirm("'" + item.company + "'을(를) 목록에서 지울까요?")) return;
+    items = items.filter(function (other) { return other.id !== item.id; });
+    saveItems();
+    renderBoard();
+  });
+
+  bottom.appendChild(select);
+  bottom.appendChild(deleteBtn);
+  card.appendChild(bottom);
+  return card;
+}
+
+// 요약과 목록 전체를 다시 그려요
+function renderBoard() {
+  renderSummary();
+  boardList.textContent = "";
+
+  const filter = filterSelect.value || FILTER_ALL;
+  const shown = sortByDeadline(items).filter(function (item) {
+    return filter === FILTER_ALL || item.status === filter;
+  });
+  shown.forEach(function (item) {
+    boardList.appendChild(makeItemCard(item));
+  });
+
+  if (items.length === 0) {
+    emptyMessage.textContent = "아직 추가한 회사가 없어요.";
+  } else if (shown.length === 0) {
+    emptyMessage.textContent = "이 상태의 회사가 없어요.";
+  }
+  emptyMessage.hidden = shown.length > 0;
 }
 
 // ----- 6. 단추를 눌렀을 때 -----
 
-// "프롬프트 만들기"
-function onBuildClick() {
-  const values = readInputs();
-  const numbers = getSelectedNumbers();
-
-  // 꼭 필요한 두 칸이 비어 있거나, 고른 항목이 하나도 없으면 멈추고 알려줘요
-  if (!values.url || !values.company || numbers.length === 0) {
-    resultCard.hidden = false;
-    resultArea.textContent = "";
-    currentTexts = [];
-    warning.hidden = false;
-    warning.textContent = numbers.length === 0
-      ? "만들 항목을 하나 이상 골라 주세요."
-      : "URL과 기업명은 꼭 입력해 주세요.";
+// "추가하기"
+function onAddClick() {
+  const company = companyInput.value.trim();
+  if (!company) {
+    formMessage.textContent = "회사명은 꼭 입력해 주세요.";
+    formMessage.hidden = false;
     return;
   }
+  formMessage.hidden = true;
 
-  renderResult(buildPromptList(values, numbers));
-  const warningText = makeWarning(values, numbers);
-  warning.hidden = warningText === "";
-  warning.textContent = warningText;
-  resultCard.hidden = false;
+  items.push({
+    id: makeId(),
+    company: company,
+    job: jobInput.value.trim(),
+    deadline: deadlineInput.value,
+    status: statusSelect.value,
+    memo: memoInput.value.trim()
+  });
+  saveItems();
+
+  // 입력 칸을 비워서 다음 회사를 바로 쓸 수 있게 해요
+  companyInput.value = "";
+  jobInput.value = "";
+  deadlineInput.value = "";
+  memoInput.value = "";
+  statusSelect.value = DEFAULT_STATUS;
+  renderBoard();
 }
 
-// "예시 채우기": 연습용 값을 칸에 넣어요
+// "예시 채우기": 연습용 값을 입력 칸에 넣어요 (추가는 "추가하기"를 눌러야 해요)
 function onExampleClick() {
-  urlInput.value = "https://example.com/recruit";
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 7);
   companyInput.value = "가나다전자";
   jobInput.value = "재무회계";
-  industryInput.value = "반도체 산업";
-  competitorInput.value = "라마바전자, 사아자전자";
-  pasteInput.value = "";
-  document.querySelectorAll('input[name="section"]').forEach(function (box) {
-    box.checked = true;
-  });
-}
-
-// "전체 복사": 지금 나온 프롬프트를 전부 이어서 복사해요
-function onCopyAllClick() {
-  copyText(currentTexts.join("\n\n----------\n\n"));
-  flashCopied(copyAllBtn);
+  deadlineInput.value = toDateText(nextWeek);
+  statusSelect.value = DEFAULT_STATUS;
+  memoInput.value = "자기소개서 3번 문항 다듬기";
+  formMessage.hidden = true;
 }
 
 // ----- 7. 시작할 때 연결하기 -----
-buildBtn.addEventListener("click", onBuildClick);
+fillStatusOptions(statusSelect, DEFAULT_STATUS);
+fillFilterOptions();
+addBtn.addEventListener("click", onAddClick);
 exampleBtn.addEventListener("click", onExampleClick);
-copyAllBtn.addEventListener("click", onCopyAllClick);
+filterSelect.addEventListener("change", renderBoard);
+items = loadItems();
+renderBoard();

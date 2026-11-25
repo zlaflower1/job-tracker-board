@@ -3,59 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>기업분석 프롬프트 조립기</title>
+  <title>지원 현황 보드</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="page">
-    <h1>기업분석 프롬프트 조립기</h1>
-    <p class="lead">링크와 회사 정보를 넣고 버튼을 누르면, 고른 항목의 프롬프트가 완성돼요. 위에서부터 차례로 GPT에 붙여넣으세요. (분석은 GPT가 해요.)</p>
+    <h1>지원 현황 보드</h1>
+    <p class="lead">지원한 회사와 진행 상황을 한곳에서 관리해요. 입력한 내용은 이 브라우저 안에만 저장돼요.</p>
 
-    <!-- 1단계: 입력 칸 -->
+    <p id="storageWarning" class="warning" hidden>이 브라우저에서는 저장이 막혀 있어요. 페이지를 닫으면 내용이 사라질 수 있어요.</p>
+
+    <!-- 1단계: 회사 추가 -->
     <section class="card">
-      <h2>1. 회사 정보 입력</h2>
+      <h2>회사 추가</h2>
 
-      <label for="urlInput">채용공고 또는 회사 홈페이지 URL (필수)</label>
-      <input id="urlInput" type="text" placeholder="https://...">
-
-      <label for="companyInput">기업명 (필수)</label>
+      <label for="companyInput">회사명 (필수)</label>
       <input id="companyInput" type="text" placeholder="예: 가나다전자">
 
       <label for="jobInput">지원 직무</label>
-      <input id="jobInput" type="text" placeholder="예: 회계 / 재무 / 경영지원">
+      <input id="jobInput" type="text" placeholder="예: 재무회계">
 
-      <label for="industryInput">산업</label>
-      <input id="industryInput" type="text" placeholder="예: 반도체 산업">
+      <label for="deadlineInput">지원 마감일</label>
+      <input id="deadlineInput" type="date">
 
-      <label for="competitorInput">경쟁사 (있으면 쉼표로 구분)</label>
-      <input id="competitorInput" type="text" placeholder="예: 라마바전자, 사아자전자">
+      <label for="statusSelect">진행 상태</label>
+      <select id="statusSelect"></select>
 
-      <p class="label">만들 항목 고르기</p>
-      <div class="section-list">
-        <label class="section-option"><input type="checkbox" name="section" value="1" checked> 1. 기업정보파악 및 핵심 사업분석</label>
-        <label class="section-option"><input type="checkbox" name="section" value="2" checked> 2. 산업분석</label>
-        <label class="section-option"><input type="checkbox" name="section" value="3" checked> 3. 채용관점에서 기업분석 및 경쟁사 분석</label>
-        <label class="section-option"><input type="checkbox" name="section" value="4" checked> 4. SWOT분석</label>
-        <label class="section-option"><input type="checkbox" name="section" value="5" checked> 5. 결론</label>
-      </div>
+      <label for="memoInput">메모</label>
+      <input id="memoInput" type="text" placeholder="예: 1차 면접 준비물 확인">
 
-      <label for="pasteInput">공고 내용 붙여넣기 (선택 · GPT가 링크를 못 열 때만)</label>
-      <textarea id="pasteInput" rows="4" placeholder="채용공고나 홈페이지 글을 복사해서 붙여넣으세요."></textarea>
+      <p id="formMessage" class="warning" hidden></p>
 
       <div class="button-row">
         <button id="exampleBtn" class="btn btn-big" type="button">예시 채우기</button>
-        <button id="buildBtn" class="btn btn-main btn-big" type="button">프롬프트 만들기</button>
+        <button id="addBtn" class="btn btn-main btn-big" type="button">추가하기</button>
       </div>
     </section>
 
-    <!-- 2단계: 결과 -->
-    <section id="resultCard" class="card" hidden>
-      <div class="result-head">
-        <h2>2. 완성된 프롬프트</h2>
-        <button id="copyAllBtn" class="btn btn-main" type="button">전체 복사</button>
-      </div>
-      <p id="warning" class="warning" hidden></p>
-      <div id="resultArea"></div>
+    <!-- 2단계: 현황 -->
+    <section class="card">
+      <h2>현황</h2>
+      <div id="summary" class="summary"></div>
+
+      <label for="filterSelect">보기</label>
+      <select id="filterSelect"></select>
+
+      <div id="boardList"></div>
+      <p id="emptyMessage" class="note">아직 추가한 회사가 없어요.</p>
     </section>
   </main>
 
