@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>기업분석 프롬프트 조립기</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <h1>기업분석 프롬프트 조립기</h1>
+    <p class="lead">링크와 회사 정보를 넣고 버튼을 누르면, 고른 항목의 프롬프트가 완성돼요. 위에서부터 차례로 GPT에 붙여넣으세요. (분석은 GPT가 해요.)</p>
+
+    <!-- 1단계: 입력 칸 -->
+    <section class="card">
+      <h2>1. 회사 정보 입력</h2>
+
+      <label for="urlInput">채용공고 또는 회사 홈페이지 URL (필수)</label>
+      <input id="urlInput" type="text" placeholder="https://...">
+
+      <label for="companyInput">기업명 (필수)</label>
+      <input id="companyInput" type="text" placeholder="예: 가나다전자">
+
+      <label for="jobInput">지원 직무</label>
+      <input id="jobInput" type="text" placeholder="예: 회계 / 재무 / 경영지원">
+
+      <label for="industryInput">산업</label>
+      <input id="industryInput" type="text" placeholder="예: 반도체 산업">
+
+      <label for="competitorInput">경쟁사 (있으면 쉼표로 구분)</label>
+      <input id="competitorInput" type="text" placeholder="예: 라마바전자, 사아자전자">
+
+      <p class="label">만들 항목 고르기</p>
+      <div class="section-list">
+        <label class="section-option"><input type="checkbox" name="section" value="1" checked> 1. 기업정보파악 및 핵심 사업분석</label>
+        <label class="section-option"><input type="checkbox" name="section" value="2" checked> 2. 산업분석</label>
+        <label class="section-option"><input type="checkbox" name="section" value="3" checked> 3. 채용관점에서 기업분석 및 경쟁사 분석</label>
+        <label class="section-option"><input type="checkbox" name="section" value="4" checked> 4. SWOT분석</label>
+        <label class="section-option"><input type="checkbox" name="section" value="5" checked> 5. 결론</label>
+      </div>
+
+      <label for="pasteInput">공고 내용 붙여넣기 (선택 · GPT가 링크를 못 열 때만)</label>
+      <textarea id="pasteInput" rows="4" placeholder="채용공고나 홈페이지 글을 복사해서 붙여넣으세요."></textarea>
+
+      <div class="button-row">
+        <button id="exampleBtn" class="btn btn-big" type="button">예시 채우기</button>
+        <button id="buildBtn" class="btn btn-main btn-big" type="button">프롬프트 만들기</button>
+      </div>
+    </section>
+
+    <!-- 2단계: 결과 -->
+    <section id="resultCard" class="card" hidden>
+      <div class="result-head">
+        <h2>2. 완성된 프롬프트</h2>
+        <button id="copyAllBtn" class="btn btn-main" type="button">전체 복사</button>
+      </div>
+      <p id="warning" class="warning" hidden></p>
+      <div id="resultArea"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

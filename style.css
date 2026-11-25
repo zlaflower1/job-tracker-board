@@ -1,0 +1,173 @@
+/* ===== 자주 바꾸는 값은 여기에 모아요 (색, 크기) ===== */
+:root {
+  --color-bg: #f4f6fa;
+  --color-card: #ffffff;
+  --color-text: #1f2937;
+  --color-sub: #6b7280;
+  --color-main: #2563eb;
+  --color-main-dark: #1d4ed8;
+  --color-line: #d9dee8;
+  --color-warning-bg: #fff7e0;
+  --color-warning-text: #8a5a00;
+  --color-done: #16a34a;
+  --radius: 10px;
+  --gap: 16px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: "Malgun Gothic", "맑은 고딕", sans-serif;
+  line-height: 1.6;
+}
+
+.page {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+}
+
+h1 { margin: 0 0 4px; font-size: 1.6rem; }
+h2 { margin: 0 0 12px; font-size: 1.15rem; }
+h3 { margin: 20px 0 8px; font-size: 1rem; color: var(--color-main-dark); }
+
+.lead { margin: 0 0 var(--gap); color: var(--color-sub); }
+
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: var(--gap);
+}
+
+label, .label {
+  display: block;
+  margin: 12px 0 4px;
+  font-weight: bold;
+  font-size: 0.92rem;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+}
+.btn-big {
+  flex: 1;
+  padding: 12px;
+  font-size: 1.05rem;
+}
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+/* 폰처럼 좁은 화면: 여백을 줄이고 단추를 위아래로 쌓아요 */
+@media (max-width: 520px) {
+  .page { padding: 16px 12px 40px; }
+  .card { padding: 14px; }
+  h1 { font-size: 1.35rem; }
+  .button-row { flex-direction: column; }
+  .result-head { flex-wrap: wrap; }
+  .size-group { gap: 6px; flex-wrap: nowrap; }
+  .size-option { flex: 1 1 0; min-width: 0; justify-content: center; padding: 8px 2px; white-space: nowrap; font-size: 0.9rem; }
+}
+[hidden] { display: none !important; }
+
+input[type="text"]:focus, textarea:focus {
+  outline: 2px solid var(--color-main);
+  border-color: var(--color-main);
+}
+
+/* 규모 선택 (라디오 버튼) */
+.size-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.size-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+/* 항목 고르기 (체크박스 목록) */
+.section-list { display: flex; flex-direction: column; gap: 6px; }
+.section-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.note { margin: 10px 0 0; color: var(--color-sub); font-size: 0.9rem; }
+
+.result-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  font-size: 0.9rem;
+}
+
+/* 프롬프트 하나하나를 담는 상자 */
+.prompt-box {
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.prompt-box h3 { margin-top: 0; }
+.prompt-text {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
+.btn {
+  padding: 7px 14px;
+  border: 1px solid var(--color-main);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-main);
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.btn:hover { background: var(--color-bg); }
+.btn-main { background: var(--color-main); color: #fff; }
+.btn-main:hover { background: var(--color-main-dark); }
+.btn.copied { border-color: var(--color-done); color: var(--color-done); }
+.btn-main.copied { background: var(--color-done); color: #fff; }
